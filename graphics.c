@@ -459,15 +459,17 @@ void DrawTitleScreen(void)
     MoveSprite(&gameScreen->ViewPort, &playerSprite, -100, 0);
     MoveSprite(&gameScreen->ViewPort, &aiSprite, -100, 0);
 
-    DrawText(120, 80, "PONG", COLOR_WHITE);
-    DrawText(80, 120, "Click to Start", COLOR_YELLOW);
-    DrawText(75, 160, "ESC to Quit", COLOR_CYAN);
+    /* Centered text: x = (320 - strlen*8) / 2 */
+    DrawText(144, 80, "PONG", COLOR_WHITE);           /* 4 chars */
+    DrawText(104, 120, "Click to Start", COLOR_YELLOW); /* 14 chars */
+    DrawText(116, 160, "ESC to Quit", COLOR_CYAN);    /* 11 chars */
 }
 
 void DrawPausedText(void)
 {
-    DrawText(120, 128, "PAUSED", COLOR_YELLOW);
-    DrawText(60, 160, "Click to Resume", COLOR_WHITE);
+    /* Centered text: x = (320 - strlen*8) / 2 */
+    DrawText(136, 128, "PAUSED", COLOR_YELLOW);       /* 6 chars */
+    DrawText(100, 160, "Click to Resume", COLOR_WHITE); /* 15 chars */
 }
 
 void DrawGameOver(BOOL playerWon)
@@ -477,9 +479,10 @@ void DrawGameOver(BOOL playerWon)
     MoveSprite(&gameScreen->ViewPort, &playerSprite, -100, 0);
     MoveSprite(&gameScreen->ViewPort, &aiSprite, -100, 0);
 
-    DrawText(100, 100, "GAME OVER", COLOR_YELLOW);
-    DrawText(100, 130, playerWon ? "YOU WIN!" : "CPU WINS", playerWon ? COLOR_WHITE : COLOR_CYAN);
-    DrawText(60, 180, "Click to Continue", COLOR_WHITE);
+    /* Centered text: x = (320 - strlen*8) / 2 */
+    DrawText(124, 100, "GAME OVER", COLOR_YELLOW);    /* 9 chars */
+    DrawText(128, 130, playerWon ? "YOU WIN!" : "CPU WINS", playerWon ? COLOR_WHITE : COLOR_CYAN); /* 8 chars */
+    DrawText(92, 180, "Click to Continue", COLOR_WHITE); /* 17 chars */
 }
 
 BOOL DrawStaticScreen(void)

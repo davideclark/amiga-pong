@@ -315,8 +315,9 @@ static void DrawHighScoreEntry(void)
     WORD i;
     char displayName[NAME_LENGTH + 2];
 
-    DrawText(80, 60, "NEW HIGH SCORE!", COLOR_YELLOW);
-    DrawText(60, 90, "Enter your name:", COLOR_WHITE);
+    /* Centered text: x = (320 - strlen*8) / 2 */
+    DrawText(100, 60, "NEW HIGH SCORE!", COLOR_YELLOW);  /* 15 chars */
+    DrawText(96, 90, "Enter your name:", COLOR_WHITE);   /* 16 chars */
 
     /* Build display string with cursor */
     for (i = 0; i < NAME_LENGTH; i++) {
@@ -330,8 +331,8 @@ static void DrawHighScoreEntry(void)
     }
     displayName[NAME_LENGTH] = '\0';
 
-    DrawText(120, 120, displayName, COLOR_CYAN);
-    DrawText(60, 170, "Press ENTER to save", COLOR_WHITE);
+    DrawText(128, 120, displayName, COLOR_CYAN);         /* 8 chars */
+    DrawText(84, 170, "Press ENTER to save", COLOR_WHITE); /* 19 chars */
 }
 
 static void DrawHighScoreTable(void)
@@ -343,7 +344,7 @@ static void DrawHighScoreTable(void)
     WORD score;
     WORD digit;
 
-    DrawText(100, 175, "HIGH SCORES", COLOR_YELLOW);
+    DrawText(116, 175, "HIGH SCORES", COLOR_YELLOW);  /* 11 chars, centered */
 
     for (i = 0; i < MAX_HIGHSCORES; i++) {
         if (highScores.entries[i].score > 0) {
