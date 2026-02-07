@@ -23,6 +23,13 @@ typedef enum {
     STATE_HIGHSCORE_ENTRY
 } GameState;
 
+/* Difficulty levels */
+typedef enum {
+    DIFFICULTY_EASY = 0,
+    DIFFICULTY_MEDIUM = 1,
+    DIFFICULTY_HARD = 2
+} Difficulty;
+
 /* Ball structure with fixed-point position/velocity */
 typedef struct {
     LONG x;      /* Fixed-point X position */
@@ -40,6 +47,7 @@ typedef struct {
 /* Game context */
 typedef struct {
     GameState state;
+    Difficulty difficulty;
     Ball ball;
     Paddle playerPaddle;
     Paddle aiPaddle;
@@ -47,6 +55,7 @@ typedef struct {
     WORD aiScore;
     WORD rallies;        /* Count of paddle hits for speed increase */
     BOOL servingPlayer;  /* TRUE if player serves */
+    WORD aiUpdateTimer;  /* Timer for AI target recalculation */
 } GameContext;
 
 /* Initialize game state */
@@ -64,10 +73,11 @@ BOOL IsGameOver(GameContext *ctx);
 /* Get winner (TRUE = player, FALSE = AI) */
 BOOL PlayerWon(GameContext *ctx);
 
-/* AI difficulty settings */
-#define AI_REACTION_DELAY  4   /* Frames before AI starts moving */
-#define AI_SPEED           5   /* Max pixels AI can move per frame */
-#define AI_ERROR_MARGIN    24  /* Random error in prediction */
+/* Set difficulty level */
+void SetDifficulty(GameContext *ctx, Difficulty diff);
+
+/* AI dead zone - don't move if within this many pixels of target */
+#define AI_DEAD_ZONE 4
 
 /* Ball speed settings */
 #define BALL_INITIAL_SPEED INT_TO_FP(6)

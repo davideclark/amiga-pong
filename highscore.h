@@ -18,10 +18,12 @@ typedef struct {
     WORD score;
 } HighScoreEntry;
 
-/* High score table */
+/* High score table with settings */
 typedef struct {
     HighScoreEntry entries[MAX_HIGHSCORES];
-    ULONG magic;  /* For file validation */
+    ULONG magic;      /* For file validation */
+    UBYTE difficulty; /* Saved difficulty setting (0=easy, 1=medium, 2=hard) */
+    UBYTE reserved[3]; /* Padding for future use */
 } HighScoreTable;
 
 /* Magic number for file validation */

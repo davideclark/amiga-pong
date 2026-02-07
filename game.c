@@ -17,6 +17,29 @@ static WORD Random(WORD max)
     return (WORD)((randomSeed >> 16) % (UWORD)max);
 }
 
+/* AI difficulty settings per level */
+typedef struct {
+    WORD speed;          /* Max pixels AI can move per frame */
+    WORD errorMargin;    /* Random error in prediction */
+    WORD updateInterval; /* Frames between target recalculation */
+} AISettings;
+
+static const AISettings difficultySettings[3] = {
+    { 3, 40, 20 },  /* EASY: slow, inaccurate, updates rarely */
+    { 4, 24, 12 },  /* MEDIUM: moderate speed and accuracy */
+    { 6, 8,  6 }    /* HARD: fast, accurate, updates frequently */
+};
+
+/* Current AI settings (set by difficulty) */
+static AISettings currentAI = { 4, 24, 12 };
+
+void SetDifficulty(GameContext *ctx, Difficulty diff)
+{
+    if (diff > DIFFICULTY_HARD) diff = DIFFICULTY_MEDIUM;
+    ctx->difficulty = diff;
+    currentAI = difficultySettings[diff];
+}
+
 void InitGame(GameContext *ctx)
 {
     ctx->state = STATE_TITLE;
@@ -24,6 +47,13 @@ void InitGame(GameContext *ctx)
     ctx->aiScore = 0;
     ctx->rallies = 0;
     ctx->servingPlayer = TRUE;
+    ctx->aiUpdateTimer = 0;
+
+    /* Default to medium if not set */
+    if (ctx->difficulty > DIFFICULTY_HARD) {
+        ctx->difficulty = DIFFICULTY_MEDIUM;
+    }
+    currentAI = difficultySettings[ctx->difficulty];
 
     /* Center paddles */
     ctx->playerPaddle.y = SCREEN_HEIGHT / 2;
@@ -58,6 +88,9 @@ void ResetBall(GameContext *ctx)
     }
 
     ctx->ball.vy = angle;
+
+    /* Reset AI update timer so it recalculates on next serve */
+    ctx->aiUpdateTimer = 0;
 }
 
 /* Clamp a value to a range */
@@ -74,51 +107,71 @@ static LONG Abs(LONG x)
     return (x < 0) ? -x : x;
 }
 
+/* Absolute value for WORD */
+static WORD AbsW(WORD x)
+{
+    return (x < 0) ? -x : x;
+}
+
 /* Update AI paddle */
 static void UpdateAI(GameContext *ctx)
 {
-    WORD predictedY;
-    WORD error;
     WORD diff;
-    LONG vxShifted;
 
-    /* Only track when ball is moving towards AI */
-    if (ctx->ball.vx > 0) {
-        /* Predict where ball will be when it reaches AI paddle */
-        LONG timeToReach;
-        LONG aiPaddleX = INT_TO_FP(SCREEN_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH);
+    /* Only recalculate target periodically to reduce jitter */
+    ctx->aiUpdateTimer++;
+    if (ctx->aiUpdateTimer >= currentAI.updateInterval) {
+        ctx->aiUpdateTimer = 0;
 
-        /* Safe division - avoid divide by zero */
-        vxShifted = ctx->ball.vx >> 4;
-        if (vxShifted < 1) vxShifted = 1;
+        /* Only track when ball is moving towards AI */
+        if (ctx->ball.vx > 0) {
+            /* Predict where ball will be when it reaches AI paddle */
+            LONG timeToReach;
+            LONG aiPaddleX = INT_TO_FP(SCREEN_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH);
+            LONG vxShifted;
+            WORD predictedY;
+            WORD error;
 
-        timeToReach = (aiPaddleX - ctx->ball.x) / vxShifted;
-        if (timeToReach < 0) timeToReach = 0;
-        if (timeToReach > 128) timeToReach = 128;
+            /* Safe division - avoid divide by zero */
+            vxShifted = ctx->ball.vx >> 4;
+            if (vxShifted < 1) vxShifted = 1;
 
-        predictedY = FP_TO_INT(ctx->ball.y + (ctx->ball.vy * timeToReach) / 16);
+            timeToReach = (aiPaddleX - ctx->ball.x) / vxShifted;
+            if (timeToReach < 0) timeToReach = 0;
+            if (timeToReach > 128) timeToReach = 128;
 
-        /* Add some error based on distance */
-        error = Random(AI_ERROR_MARGIN * 2 + 1) - AI_ERROR_MARGIN;
-        predictedY += error;
+            predictedY = FP_TO_INT(ctx->ball.y + (ctx->ball.vy * timeToReach) / 16);
 
-        /* Clamp prediction to screen */
-        predictedY = Clamp(predictedY, PADDLE_HEIGHT / 2,
-                          SCREEN_HEIGHT - PADDLE_HEIGHT / 2);
+            /* Add some error based on difficulty */
+            if (currentAI.errorMargin > 0) {
+                error = Random(currentAI.errorMargin * 2 + 1) - currentAI.errorMargin;
+                predictedY += error;
+            }
 
-        ctx->aiPaddle.targetY = predictedY;
-    } else {
-        /* Ball moving away - return to center slowly */
-        ctx->aiPaddle.targetY = SCREEN_HEIGHT / 2;
+            /* Clamp prediction to screen */
+            predictedY = Clamp(predictedY, PADDLE_HEIGHT / 2,
+                              SCREEN_HEIGHT - PADDLE_HEIGHT / 2);
+
+            ctx->aiPaddle.targetY = predictedY;
+        } else {
+            /* Ball moving away - return to center slowly */
+            ctx->aiPaddle.targetY = SCREEN_HEIGHT / 2;
+        }
+    }
+
+    /* Calculate difference to target */
+    diff = ctx->aiPaddle.targetY - ctx->aiPaddle.y;
+
+    /* Dead zone: don't move if close enough to target (reduces jitter) */
+    if (AbsW(diff) <= AI_DEAD_ZONE) {
+        return;  /* Already close enough, don't move */
     }
 
     /* Move towards target with limited speed */
-    diff = ctx->aiPaddle.targetY - ctx->aiPaddle.y;
-
-    if (diff > AI_SPEED) {
-        ctx->aiPaddle.y += AI_SPEED;
-    } else if (diff < -AI_SPEED) {
-        ctx->aiPaddle.y -= AI_SPEED;
+    if (diff > currentAI.speed) {
+        ctx->aiPaddle.y += currentAI.speed;
+    } else if (diff < -currentAI.speed) {
+        ctx->aiPaddle.y -= currentAI.speed;
     } else {
         ctx->aiPaddle.y = ctx->aiPaddle.targetY;
     }
@@ -213,6 +266,9 @@ void UpdateGame(GameContext *ctx, WORD playerMouseY)
             speed = Abs(ctx->ball.vx) + BALL_SPEED_INCREASE;
             if (speed > BALL_MAX_SPEED) speed = BALL_MAX_SPEED;
             ctx->ball.vx = speed;
+
+            /* Reset AI timer so it recalculates after player hit */
+            ctx->aiUpdateTimer = currentAI.updateInterval;
         }
     }
 

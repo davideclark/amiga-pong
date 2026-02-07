@@ -26,6 +26,10 @@ void InitHighScores(HighScoreTable *table)
     WORD i;
 
     table->magic = HIGHSCORE_MAGIC;
+    table->difficulty = 1;  /* Default to medium */
+    table->reserved[0] = 0;
+    table->reserved[1] = 0;
+    table->reserved[2] = 0;
 
     for (i = 0; i < MAX_HIGHSCORES; i++) {
         StrCopy(table->entries[i].name, "--------", NAME_LENGTH);
