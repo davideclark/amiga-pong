@@ -1,0 +1,25 @@
+# Build output
+bin/
+*.o
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+
+# Amiga specific
+*.info
+*.lha
+
+# High score files
+*.hiscore
+
+# Claude/AI files
+.claude/
+config.json
+models/
+vectors.db
+
+# Windows artifacts
+nul
