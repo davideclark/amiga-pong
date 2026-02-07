@@ -80,7 +80,7 @@ void SetDifficulty(GameContext *ctx, Difficulty diff);
 #define AI_DEAD_ZONE 4
 
 /* Ball speed settings */
-#define BALL_INITIAL_SPEED INT_TO_FP(6)
+#define BALL_INITIAL_SPEED INT_TO_FP(2)
 #define BALL_MAX_SPEED     INT_TO_FP(12)
 #define BALL_SPEED_INCREASE 48  /* Added each rally (fixed-point) */
 

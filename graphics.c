@@ -49,6 +49,25 @@ static UWORD *blankPointer = NULL;
 /* State tracking */
 static BOOL staticScreenDrawn = FALSE;
 
+/* Direct sprite position update - faster than MoveSprite() */
+static void SetSpritePosition(UWORD *spriteData, WORD x, WORD y, WORD height)
+{
+    /* Convert to hardware coordinates */
+    /* X needs +128 offset, Y needs screen offset (varies by PAL/NTSC) */
+    WORD hstart = x + 128;
+    WORD vstart = y + 44;  /* PAL vertical offset */
+    WORD vstop = vstart + height;
+
+    /* Encode into sprite control words */
+    /* Word 0: VSTART[7:0] | HSTART[8:1] */
+    /* Word 1: VSTOP[7:0] | ATT | VSTART[8] | VSTOP[8] | HSTART[0] | 0000 */
+    spriteData[0] = ((vstart & 0xFF) << 8) | ((hstart >> 1) & 0xFF);
+    spriteData[1] = ((vstop & 0xFF) << 8) |
+                    ((vstart >> 8) & 1) << 2 |
+                    ((vstop >> 8) & 1) << 1 |
+                    (hstart & 1);
+}
+
 /* Sprite data sizes */
 #define BALL_SPRITE_HEIGHT 8
 #define PADDLE_SPRITE_HEIGHT 36  /* 32 + some margin */
@@ -528,7 +547,7 @@ void UpdateGameGraphics(WORD ballX, WORD ballY, WORD playerY, WORD aiY,
     /* Wait for bottom of viewport before moving sprites */
     WaitBOVP(&gameScreen->ViewPort);
 
-    /* Move sprites during VBlank - no trail artifacts! */
+    /* Update sprite positions - use MoveSprite to keep SimpleSprite in sync */
     MoveSprite(&gameScreen->ViewPort, &ballSprite,
                ballX - BALL_SIZE/2, ballY - BALL_SIZE/2);
     MoveSprite(&gameScreen->ViewPort, &playerSprite,
