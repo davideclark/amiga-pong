@@ -525,17 +525,16 @@ void UpdateGameGraphics(WORD ballX, WORD ballY, WORD playerY, WORD aiY,
         lastAIScore = aiScore;
     }
 
-    /* Move sprites - this is instant, no blitter needed! */
-    /* Sprite X coordinates need offset for hardware positioning */
+    /* Wait for bottom of viewport before moving sprites */
+    WaitBOVP(&gameScreen->ViewPort);
+
+    /* Move sprites during VBlank - no trail artifacts! */
     MoveSprite(&gameScreen->ViewPort, &ballSprite,
                ballX - BALL_SIZE/2, ballY - BALL_SIZE/2);
     MoveSprite(&gameScreen->ViewPort, &playerSprite,
                PADDLE_OFFSET, playerY - PADDLE_HEIGHT/2);
     MoveSprite(&gameScreen->ViewPort, &aiSprite,
                SCREEN_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH, aiY - PADDLE_HEIGHT/2);
-
-    /* Sync to display */
-    WaitTOF();
 }
 
 void RequestFullRedraw(void)
